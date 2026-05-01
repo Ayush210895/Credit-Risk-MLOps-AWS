@@ -33,4 +33,4 @@ For AWS deployment, the tracking layout should evolve to:
 | Tracking UI/API | Local MLflow UI | ECS or SageMaker-hosted MLflow server |
 | Model approval | Manual review | Registry stage or metadata gate |
 
-The next milestone is adding a lightweight model registry metadata layer so only approved model artifacts are served by the API.
+The model registry layer in `docs/mlops/model_registry.md` uses this run metadata as part of the approval history.

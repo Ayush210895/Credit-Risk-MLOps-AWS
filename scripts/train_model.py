@@ -8,6 +8,7 @@ from pathlib import Path
 
 from credit_risk_mlops.config.settings import METRICS_PATH, MLFLOW_EXPERIMENT_NAME, MODEL_PATH, RAW_DATA_PATH, REPORT_PATH, SAMPLE_DATA_PATH
 from credit_risk_mlops.data.load_data import load_credit_data
+from credit_risk_mlops.models.registry import register_candidate
 from credit_risk_mlops.models.train import save_model_artifacts, train_model
 from credit_risk_mlops.tracking.mlflow_tracking import log_training_run
 
@@ -29,6 +30,7 @@ def main() -> None:
     result = train_model(df, model_type=args.model_type)
     save_model_artifacts(result)
     print(f"Trained {result['metrics']['model_type']} on {result['metrics']['rows']} rows")
+    run_id = None
     if not args.no_mlflow:
         run_id = log_training_run(
             result,
@@ -44,6 +46,8 @@ def main() -> None:
             experiment_name=args.experiment_name,
         )
         print(f"MLflow run logged: {run_id}")
+    candidate = register_candidate(result, data_path=data_path, mlflow_run_id=run_id)
+    print(f"Registered candidate model: {candidate['model_id']}")
 
 
 if __name__ == "__main__":

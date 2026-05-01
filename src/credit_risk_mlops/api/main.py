@@ -10,7 +10,7 @@ from typing import Any
 from fastapi import FastAPI
 
 from credit_risk_mlops.api.schemas import CreditApplication, PredictionResponse
-from credit_risk_mlops.config.settings import MODEL_PATH
+from credit_risk_mlops.models.registry import resolve_approved_model_path
 from credit_risk_mlops.models.predict import load_model, predict_default_probability
 
 
@@ -20,7 +20,7 @@ MODEL: Any | None = None
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     global MODEL
-    model_path = os.environ.get("MODEL_PATH", str(MODEL_PATH))
+    model_path = os.environ.get("MODEL_PATH") or str(resolve_approved_model_path())
     MODEL = load_model(model_path)
     yield
 

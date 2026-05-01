@@ -15,6 +15,7 @@ Credit risk is a strong finance ML use case because it connects model quality wi
 | Features | Numeric scaling, categorical one-hot encoding, missing-value handling |
 | Evaluation | ROC AUC, average precision, precision, recall, F1 |
 | Experiment tracking | MLflow runs with params, metrics, model artifact, and report artifact |
+| Model registry | Candidate registration plus metric-gated approval for serving |
 | Serving | FastAPI `/health` and `/predict` endpoints |
 | Packaging | Dockerfile and docker-compose |
 | CI | GitHub Actions tests, compile check, Docker build |
@@ -39,6 +40,9 @@ pip install -r requirements.txt
 
 # Train on bundled sample data
 PYTHONPATH=src python scripts/train_model.py
+
+# Approve the candidate model for serving
+PYTHONPATH=src python scripts/promote_model.py
 
 # Run tests
 PYTHONPATH=src python -m pytest -q
@@ -70,6 +74,18 @@ PYTHONPATH=src python scripts/train_model.py --tracking-uri http://localhost:500
 # Skip tracking for quick debugging
 PYTHONPATH=src python scripts/train_model.py --no-mlflow
 ```
+
+## Model Approval Gate
+
+Training registers a candidate model. The API serves the approved model artifact from `artifacts/models/approved/`.
+
+```bash
+PYTHONPATH=src python scripts/train_model.py
+PYTHONPATH=src python scripts/promote_model.py --min-roc-auc 0.70 --min-average-precision 0.50
+PYTHONPATH=src uvicorn credit_risk_mlops.api.main:app --reload
+```
+
+The promotion step writes registry metadata to `artifacts/registry/` and blocks candidates that miss the approval thresholds.
 
 Test the API:
 
@@ -105,6 +121,7 @@ curl -X POST http://127.0.0.1:8000/predict \
 ```bash
 PYTHONPATH=src python scripts/download_data.py
 PYTHONPATH=src python scripts/train_model.py --data data/raw/credit_g.csv
+PYTHONPATH=src python scripts/promote_model.py
 ```
 
 `data/raw/` is ignored so large/raw data does not get committed.
@@ -115,6 +132,7 @@ Train once so the model artifact exists locally:
 
 ```bash
 PYTHONPATH=src python scripts/train_model.py
+PYTHONPATH=src python scripts/promote_model.py
 docker build -t credit-risk-mlops-aws .
 docker run -p 8000:8000 credit-risk-mlops-aws
 ```
@@ -150,8 +168,8 @@ docker compose up --build
 
 ## Roadmap
 
-1. Add model registry metadata and approval workflow.
-2. Push inference image to Amazon ECR.
-3. Deploy FastAPI container to ECS Fargate or SageMaker.
-4. Add CloudWatch dashboards and alarms.
-5. Add scheduled drift monitoring and retraining trigger.
+1. Push inference image to Amazon ECR.
+2. Deploy FastAPI container to ECS Fargate or SageMaker.
+3. Add CloudWatch dashboards and alarms.
+4. Add scheduled drift monitoring and retraining trigger.
+5. Add AWS-hosted MLflow backend with RDS/S3.
