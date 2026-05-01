@@ -14,6 +14,7 @@ Credit risk is a strong finance ML use case because it connects model quality wi
 | Modeling | Logistic regression and random forest pipelines |
 | Features | Numeric scaling, categorical one-hot encoding, missing-value handling |
 | Evaluation | ROC AUC, average precision, precision, recall, F1 |
+| Experiment tracking | MLflow runs with params, metrics, model artifact, and report artifact |
 | Serving | FastAPI `/health` and `/predict` endpoints |
 | Packaging | Dockerfile and docker-compose |
 | CI | GitHub Actions tests, compile check, Docker build |
@@ -44,6 +45,30 @@ PYTHONPATH=src python -m pytest -q
 
 # Start API
 PYTHONPATH=src uvicorn credit_risk_mlops.api.main:app --reload
+```
+
+## MLflow Tracking
+
+Training logs an MLflow run by default to local SQLite metadata under `artifacts/mlflow/`.
+
+```bash
+PYTHONPATH=src python scripts/train_model.py
+PYTHONPATH=src mlflow ui --backend-store-uri sqlite:///artifacts/mlflow/mlflow.db
+```
+
+Then open `http://127.0.0.1:5000` to compare runs, metrics, parameters, and artifacts.
+
+Useful options:
+
+```bash
+# Train a different baseline and log it to the same experiment
+PYTHONPATH=src python scripts/train_model.py --model-type random_forest
+
+# Use a remote tracking server later
+PYTHONPATH=src python scripts/train_model.py --tracking-uri http://localhost:5000
+
+# Skip tracking for quick debugging
+PYTHONPATH=src python scripts/train_model.py --no-mlflow
 ```
 
 Test the API:
@@ -117,6 +142,7 @@ docker compose up --build
 |-- artifacts/models/
 |-- reports/
 |-- docs/aws/
+|-- docs/mlops/
 |-- Dockerfile
 |-- docker-compose.yml
 `-- .github/workflows/ci.yml
@@ -124,9 +150,8 @@ docker compose up --build
 
 ## Roadmap
 
-1. Add MLflow experiment tracking.
-2. Add model registry metadata and approval workflow.
-3. Push inference image to Amazon ECR.
-4. Deploy FastAPI container to ECS Fargate or SageMaker.
-5. Add CloudWatch dashboards and alarms.
-6. Add scheduled drift monitoring and retraining trigger.
+1. Add model registry metadata and approval workflow.
+2. Push inference image to Amazon ECR.
+3. Deploy FastAPI container to ECS Fargate or SageMaker.
+4. Add CloudWatch dashboards and alarms.
+5. Add scheduled drift monitoring and retraining trigger.

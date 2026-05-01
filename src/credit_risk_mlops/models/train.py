@@ -63,12 +63,17 @@ def train_model(
     }
 
 
-def save_model_artifacts(result: dict[str, Any], model_path: Path = MODEL_PATH, metrics_path: Path = METRICS_PATH) -> None:
+def save_model_artifacts(
+    result: dict[str, Any],
+    model_path: Path = MODEL_PATH,
+    metrics_path: Path = METRICS_PATH,
+    report_path: Path = REPORT_PATH,
+) -> None:
     model_path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(result["pipeline"], model_path)
     metrics_path.write_text(json.dumps(result["metrics"], indent=2), encoding="utf-8")
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_PATH.write_text(render_report(result["metrics"]), encoding="utf-8")
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(render_report(result["metrics"]), encoding="utf-8")
 
 
 def render_report(metrics: dict[str, Any]) -> str:

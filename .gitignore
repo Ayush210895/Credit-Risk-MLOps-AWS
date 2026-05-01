@@ -9,6 +9,10 @@ data/raw/
 data/processed/
 artifacts/models/*.joblib
 artifacts/models/*.json
+artifacts/mlflow/
+mlflow.db
+mlflow.db-*
+mlruns/
 reports/*.json
 reports/*.csv
 !reports/*.md
