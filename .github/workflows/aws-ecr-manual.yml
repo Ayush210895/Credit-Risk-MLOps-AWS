@@ -1,0 +1,92 @@
+name: aws-ecr-manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      aws_region:
+        description: "AWS region to use if AWS publish is explicitly enabled."
+        required: true
+        default: "us-east-1"
+      ecr_repository:
+        description: "Existing ECR repository name. This workflow does not create repositories."
+        required: true
+        default: "credit-risk-mlops-aws"
+      enable_aws_push:
+        description: "Keep false for no-cost mode. Set true only after AWS budget and ECR repo are ready."
+        required: true
+        type: choice
+        options:
+          - "false"
+          - "true"
+        default: "false"
+      cost_confirmation:
+        description: "Required only for AWS push: type I_UNDERSTAND_AWS_COSTS"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  no-cost-dry-run:
+    name: No-cost local build validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Train and approve local sample model
+        run: |
+          PYTHONPATH=src python scripts/train_model.py --no-mlflow
+          PYTHONPATH=src python scripts/promote_model.py --min-roc-auc 0.70 --min-average-precision 0.50
+      - name: Build image locally
+        run: docker build -t credit-risk-mlops-aws:manual-dry-run .
+      - name: Confirm no AWS calls were made
+        run: |
+          echo "No-cost dry run complete."
+          echo "This job did not authenticate to AWS, create AWS resources, or push an image."
+
+  publish-ecr:
+    name: Guarded ECR publish
+    needs: no-cost-dry-run
+    runs-on: ubuntu-latest
+    if: ${{ inputs.enable_aws_push == 'true' && inputs.cost_confirmation == 'I_UNDERSTAND_AWS_COSTS' }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Train and approve local sample model
+        run: |
+          PYTHONPATH=src python scripts/train_model.py --no-mlflow
+          PYTHONPATH=src python scripts/promote_model.py --min-roc-auc 0.70 --min-average-precision 0.50
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ inputs.aws_region }}
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          ECR_REPOSITORY: ${{ inputs.ecr_repository }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" .
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"

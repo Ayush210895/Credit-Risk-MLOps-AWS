@@ -20,7 +20,7 @@ Credit risk is a strong finance ML use case because it connects model quality wi
 | Packaging | Dockerfile and docker-compose |
 | CI | GitHub Actions tests, compile check, Docker build |
 | Monitoring | Numeric drift report scaffold |
-| AWS path | S3, ECR, ECS/SageMaker, CloudWatch deployment plan |
+| AWS path | No-cost guarded AWS readiness docs and manual ECR workflow |
 
 ## Data Source
 
@@ -142,6 +142,15 @@ Or:
 ```bash
 docker compose up --build
 ```
+
+## AWS No-Cost Mode
+
+AWS deployment is intentionally disabled by default. The manual workflow `.github/workflows/aws-ecr-manual.yml` runs a local dry run without AWS authentication or resource creation. The ECR publish job is skipped unless `enable_aws_push=true` and `cost_confirmation=I_UNDERSTAND_AWS_COSTS`.
+
+Read these before enabling anything in AWS:
+
+- `docs/aws/no_cost_guardrails.md`
+- `docs/aws/iam_policy_templates.md`
 
 ## Project Structure
 
