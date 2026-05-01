@@ -1,0 +1,11 @@
+.git
+.venv
+__pycache__
+.pytest_cache
+*.pyc
+
+data/raw
+data/processed
+prediction_logs
+reports/*.json
+reports/*.csv

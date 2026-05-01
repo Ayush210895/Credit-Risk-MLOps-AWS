@@ -1,0 +1,9 @@
+[project]
+name = "credit-risk-mlops-aws"
+version = "0.1.0"
+description = "Credit risk MLOps pipeline with FastAPI, Docker, CI, monitoring, and AWS deployment path."
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

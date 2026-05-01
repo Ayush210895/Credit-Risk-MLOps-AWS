@@ -1,0 +1,132 @@
+# Credit Risk MLOps AWS
+
+Production-style credit-risk machine learning project built in phases. Phase 1 runs locally with a reproducible training script, FastAPI inference service, Docker, tests, CI, and a basic monitoring report. Phase 2 adds AWS deployment and monitoring.
+
+## Why This Project
+
+Credit risk is a strong finance ML use case because it connects model quality with operational controls: data access, model versioning, deployment, monitoring, and governance. This repo is designed to show that lifecycle, not just a notebook.
+
+## Current Capabilities
+
+| Area | Included |
+| --- | --- |
+| Data | OpenML `credit-g` download script plus offline sample CSV |
+| Modeling | Logistic regression and random forest pipelines |
+| Features | Numeric scaling, categorical one-hot encoding, missing-value handling |
+| Evaluation | ROC AUC, average precision, precision, recall, F1 |
+| Serving | FastAPI `/health` and `/predict` endpoints |
+| Packaging | Dockerfile and docker-compose |
+| CI | GitHub Actions tests, compile check, Docker build |
+| Monitoring | Numeric drift report scaffold |
+| AWS path | S3, ECR, ECS/SageMaker, CloudWatch deployment plan |
+
+## Data Source
+
+The full dataset is OpenML `credit-g`, dataset ID `31`, originally from UCI/Statlog German Credit. It classifies applicants as good or bad credit risks.
+
+- OpenML docs note that datasets can be retrieved by name or ID.
+- The `credit-g` dataset can be retrieved as `get_dataset("credit-g")` or ID `31`.
+
+Sources: [OpenML intro](https://docs.openml.org/intro/), [OpenML credit-g listing](https://www.openml.org/d/31).
+
+## Quick Start
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Train on bundled sample data
+PYTHONPATH=src python scripts/train_model.py
+
+# Run tests
+PYTHONPATH=src python -m pytest -q
+
+# Start API
+PYTHONPATH=src uvicorn credit_risk_mlops.api.main:app --reload
+```
+
+Test the API:
+
+```bash
+curl -X POST http://127.0.0.1:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "checking_status": "no checking",
+    "duration": 24,
+    "credit_history": "existing paid",
+    "purpose": "radio/tv",
+    "credit_amount": 2500,
+    "savings_status": "<100",
+    "employment": "1<=X<4",
+    "installment_commitment": 3,
+    "personal_status": "male single",
+    "other_parties": "none",
+    "residence_since": 2,
+    "property_magnitude": "real estate",
+    "age": 35,
+    "other_payment_plans": "none",
+    "housing": "own",
+    "existing_credits": 1,
+    "job": "skilled",
+    "num_dependents": 1,
+    "own_telephone": "none",
+    "foreign_worker": "yes"
+  }'
+```
+
+## Download Full Dataset
+
+```bash
+PYTHONPATH=src python scripts/download_data.py
+PYTHONPATH=src python scripts/train_model.py --data data/raw/credit_g.csv
+```
+
+`data/raw/` is ignored so large/raw data does not get committed.
+
+## Docker
+
+Train once so the model artifact exists locally:
+
+```bash
+PYTHONPATH=src python scripts/train_model.py
+docker build -t credit-risk-mlops-aws .
+docker run -p 8000:8000 credit-risk-mlops-aws
+```
+
+Or:
+
+```bash
+docker compose up --build
+```
+
+## Project Structure
+
+```text
+.
+|-- src/credit_risk_mlops/
+|   |-- api/
+|   |-- config/
+|   |-- data/
+|   |-- features/
+|   |-- models/
+|   `-- monitoring/
+|-- scripts/
+|-- tests/
+|-- data/sample/
+|-- artifacts/models/
+|-- reports/
+|-- docs/aws/
+|-- Dockerfile
+|-- docker-compose.yml
+`-- .github/workflows/ci.yml
+```
+
+## Roadmap
+
+1. Add MLflow experiment tracking.
+2. Add model registry metadata and approval workflow.
+3. Push inference image to Amazon ECR.
+4. Deploy FastAPI container to ECS Fargate or SageMaker.
+5. Add CloudWatch dashboards and alarms.
+6. Add scheduled drift monitoring and retraining trigger.
